@@ -1,5 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Search, BookOpen, MoreHorizontal, Pencil, Trash2, UserCheck, Users, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -18,10 +19,12 @@ interface Props { classes: any[]; teachers: { id: string; first_name: string; la
 
 export function ClassesClient({ classes, teachers, locale }: Props) {
   const isAr = locale === "ar";
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ name: "", max_students: 30 });
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [isPending, startTransition] = useTransition();
   const [assignClass, setAssignClass] = useState<any>(null);
   const [selectedTeacher, setSelectedTeacher] = useState<string>("none");
@@ -33,17 +36,26 @@ export function ClassesClient({ classes, teachers, locale }: Props) {
   function handleAdd() {
     if (!form.name) { setError(isAr ? "أدخل اسم القسم" : "Saisissez le nom de la classe"); return; }
     setError("");
+    setSuccess("");
     startTransition(async () => {
       const res = await addClass(form);
       if (res.error) { setError(res.error); return; }
       setShowModal(false);
       setForm({ name: "", max_students: 30 });
+      setSuccess(isAr ? "تم إنشاء القسم" : "Classe créée");
     });
   }
 
   function handleDelete(id: string) {
     if (!confirm(isAr ? "هل تريد حذف هذا القسم؟" : "Supprimer cette classe ?")) return;
-    startTransition(async () => { await deleteClass(id); });
+    setError("");
+    setSuccess("");
+    startTransition(async () => {
+      const res = await deleteClass(id);
+      if (res.error) { setError(res.error); return; }
+      setSuccess(isAr ? "تم حذف القسم" : "Classe supprimée");
+      router.refresh();
+    });
   }
 
   function openAssign(cls: any) {
@@ -54,12 +66,15 @@ export function ClassesClient({ classes, teachers, locale }: Props) {
 
   function handleAssign() {
     if (!assignClass) return;
+    setError("");
+    setSuccess("");
     startTransition(async () => {
       const teacherId = selectedTeacher === "none" ? null : selectedTeacher;
       const res = await assignTeacherToClass(assignClass.id, teacherId);
       if (res.error) { setError(res.error); return; }
       setAssignClass(null);
-      window.location.reload();
+      setSuccess(isAr ? "تم تحديث التعيين" : "Affectation mise à jour");
+      router.refresh();
     });
   }
 
@@ -82,6 +97,9 @@ export function ClassesClient({ classes, teachers, locale }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {success && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
+      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
       <Card>
         <Table>

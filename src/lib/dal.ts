@@ -1,5 +1,6 @@
 // Data Access Layer — server-side only, imported by server components
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const YEAR = "2025-2026";
 
@@ -24,9 +25,10 @@ export async function getProfile() {
 // ── Admin ──────────────────────────────────────────────────────────────────
 export async function getAdminStats(schoolId: string) {
   const sb = await createClient();
+  const admin = createAdminClient();
   const [stuRes, tchRes, clsRes, feesRes, newRes] = await Promise.all([
     sb.from("students").select("id", { count: "exact", head: true }).eq("school_id", schoolId),
-    sb.from("profiles").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("role", "teacher"),
+    admin.from("profiles").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("role", "teacher"),
     sb.from("classes").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("academic_year", YEAR),
     sb.from("fees").select("amount, status").eq("school_id", schoolId).eq("academic_year", YEAR),
     sb.from("enrollments").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("academic_year", YEAR).eq("status", "active").gte("enrolled_at", firstDayOfMonth()),
@@ -109,7 +111,8 @@ export async function getStudentsWithEnrollment(schoolId: string) {
 
 export async function getClasses(schoolId: string) {
   const sb = await createClient();
-  const { data } = await sb
+  const admin = createAdminClient();
+  const { data } = await admin
     .from("classes")
     .select("id, name, max_students, teacher:profiles(id, first_name, last_name)")
     .eq("school_id", schoolId)
@@ -129,8 +132,9 @@ export async function getClasses(schoolId: string) {
 
 export async function getTeachers(schoolId: string) {
   const sb = await createClient();
+  const admin = createAdminClient();
   const [teachersRes, classesRes] = await Promise.all([
-    sb.from("profiles")
+    admin.from("profiles")
       .select("id, first_name, last_name, phone, created_at")
       .eq("school_id", schoolId)
       .eq("role", "teacher")
@@ -145,6 +149,38 @@ export async function getTeachers(schoolId: string) {
     ...t,
     assigned_class: classes.find(c => c.teacher_id === t.id) ?? null,
   }));
+}
+
+export async function getStudentList(schoolId: string) {
+  const sb = await createClient();
+  const { data } = await sb
+    .from("students")
+    .select("id, first_name, last_name, matricule")
+    .eq("school_id", schoolId)
+    .order("first_name");
+  return data ?? [];
+}
+
+export async function getParents(schoolId: string) {
+  const admin = createAdminClient();
+  const { data: parents } = await admin
+    .from("profiles")
+    .select("id, first_name, last_name, phone, created_at")
+    .eq("school_id", schoolId)
+    .eq("role", "parent")
+    .order("first_name");
+  if (!parents?.length) return [];
+
+  const parentIds = parents.map(p => p.id);
+  const { data: links } = await admin
+    .from("student_parents")
+    .select("parent_id, student:students(id, first_name, last_name, matricule)")
+    .in("parent_id", parentIds);
+
+  const linksMap: Record<string, any> = {};
+  (links ?? []).forEach(l => { linksMap[l.parent_id] = l.student; });
+
+  return parents.map(p => ({ ...p, student: linksMap[p.id] ?? null }));
 }
 
 export async function getClassList(schoolId: string) {
@@ -462,6 +498,115 @@ export async function getChildFees(parentId: string) {
     .eq("academic_year", YEAR)
     .order("due_date");
   return data ?? [];
+}
+
+// ── Profile (full) ────────────────────────────────────────────────────────
+export async function getProfileFull() {
+  const sb = await createClient();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return null;
+  const { data } = await sb
+    .from("profiles")
+    .select("id, school_id, role, first_name, last_name, phone, school:schools(name, name_ar)")
+    .eq("id", user.id)
+    .single();
+  if (!data) return null;
+  return { ...data, email: user.email ?? "" };
+}
+
+// ── Notifications ──────────────────────────────────────────────────────────
+export type NotifItem = {
+  id: string;
+  type: "absence" | "fee" | "enrollment" | "info";
+  count: number;
+  extra?: string;
+};
+
+export async function getNotificationsData(
+  role: string,
+  schoolId: string | null,
+  userId: string,
+): Promise<NotifItem[]> {
+  const sb = await createClient();
+  const today = new Date().toISOString().split("T")[0];
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const items: NotifItem[] = [];
+
+  if (role === "admin" && schoolId) {
+    const [overdueRes, enrollRes] = await Promise.all([
+      sb.from("fees").select("id", { count: "exact", head: true })
+        .eq("school_id", schoolId).eq("status", "overdue"),
+      sb.from("enrollments").select("id", { count: "exact", head: true })
+        .eq("school_id", schoolId).gte("enrolled_at", weekAgo),
+    ]);
+    if ((overdueRes.count ?? 0) > 0)
+      items.push({ id: "fees", type: "fee", count: overdueRes.count! });
+    if ((enrollRes.count ?? 0) > 0)
+      items.push({ id: "enr", type: "enrollment", count: enrollRes.count! });
+
+    // Today absences via school classes
+    const { data: classes } = await sb
+      .from("classes").select("id").eq("school_id", schoolId);
+    if (classes?.length) {
+      const { data: sessions } = await sb
+        .from("attendance_sessions").select("id")
+        .in("class_id", classes.map(c => c.id)).eq("date", today);
+      if (sessions?.length) {
+        const { count: absCount } = await sb
+          .from("attendance_records").select("id", { count: "exact", head: true })
+          .in("session_id", sessions.map(s => s.id)).eq("status", "absent");
+        if ((absCount ?? 0) > 0)
+          items.push({ id: "abs", type: "absence", count: absCount!, extra: today });
+      }
+    }
+  }
+
+  if (role === "teacher") {
+    const { data: classes } = await sb
+      .from("classes").select("id").eq("teacher_id", userId);
+    if (classes?.length) {
+      const { data: sessions } = await sb
+        .from("attendance_sessions").select("id")
+        .in("class_id", classes.map(c => c.id)).eq("date", today);
+      if (!sessions?.length) {
+        items.push({ id: "att", type: "info", count: 0 });
+      } else {
+        const { count: absCount } = await sb
+          .from("attendance_records").select("id", { count: "exact", head: true })
+          .in("session_id", sessions.map(s => s.id)).eq("status", "absent");
+        if ((absCount ?? 0) > 0)
+          items.push({ id: "abs", type: "absence", count: absCount!, extra: today });
+      }
+    }
+  }
+
+  if (role === "parent") {
+    const { data: links } = await sb
+      .from("student_parents").select("student_id").eq("parent_id", userId);
+    const studentId = links?.[0]?.student_id;
+    if (studentId) {
+      const [feesRes, absRes] = await Promise.all([
+        sb.from("fees").select("id", { count: "exact", head: true })
+          .eq("student_id", studentId).in("status", ["pending", "overdue"]),
+        sb.from("attendance_records")
+          .select("status, session:attendance_sessions!inner(date)")
+          .eq("student_id", studentId).eq("status", "absent")
+          .order("attendance_sessions(date)", { ascending: false }).limit(1),
+      ]);
+      if ((feesRes.count ?? 0) > 0)
+        items.push({ id: "fees", type: "fee", count: feesRes.count! });
+      if (absRes.data?.length)
+        items.push({ id: "abs", type: "absence", count: 1, extra: (absRes.data[0].session as any)?.date ?? "" });
+    }
+  }
+
+  if (role === "super") {
+    const { data: schools } = await sb.from("schools").select("subscription_status");
+    const inactive = (schools ?? []).filter(s => s.subscription_status !== "active").length;
+    if (inactive > 0) items.push({ id: "sch", type: "info", count: inactive });
+  }
+
+  return items;
 }
 
 // ── School detail ──────────────────────────────────────────────────────────

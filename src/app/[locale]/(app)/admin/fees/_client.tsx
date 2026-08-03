@@ -21,6 +21,8 @@ export function FeesClient({ fees: initialFees, locale }: Props) {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [isPending, startTransition] = useTransition();
+  const [message, setMessage] = useState("");
+  const [messageKind, setMessageKind] = useState<"success" | "error" | "">("");
 
   const filtered = fees.filter(f => {
     const s = f.student as any;
@@ -33,10 +35,19 @@ export function FeesClient({ fees: initialFees, locale }: Props) {
   const totalPending = fees.filter(f => f.status === "pending").reduce((a, f) => a + Number(f.amount), 0);
 
   function handleMarkPaid(id: string) {
+    setMessage("");
+    setMessageKind("");
     startTransition(async () => {
       const res = await markFeePaid(id);
+      if (res.error) {
+        setMessage(res.error);
+        setMessageKind("error");
+        return;
+      }
       if (!res.error) {
         setFees(prev => prev.map(f => f.id === id ? { ...f, status: "paid", paid_at: new Date().toISOString() } : f));
+        setMessage(isAr ? "تم وضع الرسوم كمدفوعة" : "Frais marqués comme payés");
+        setMessageKind("success");
       }
     });
   }
@@ -68,6 +79,12 @@ export function FeesClient({ fees: initialFees, locale }: Props) {
           </Select>
         </CardContent>
       </Card>
+
+      {message && (
+        <div className={`rounded-lg border px-4 py-3 text-sm ${messageKind === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>
+          {message}
+        </div>
+      )}
 
       <Card>
         <Table>
@@ -115,7 +132,6 @@ export function FeesClient({ fees: initialFees, locale }: Props) {
                             <Banknote className="h-4 w-4" />{isAr ? "تحديد كمدفوع" : "Marquer payé"}
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem>{isAr ? "تعديل" : "Modifier"}</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

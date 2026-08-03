@@ -21,7 +21,7 @@ const ROLE_PREFIX: Record<string, string> = {
   parent:  "/parent",
 };
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const pathnameWithoutLocale = pathname.replace(/^\/(fr|ar)/, "") || "/";
   const locale = pathname.match(/^\/(fr|ar)/)?.[1] ?? "fr";
@@ -58,7 +58,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
   }
 
-  // Fetch role from profiles table (source of truth)
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
@@ -72,12 +71,10 @@ export async function middleware(request: NextRequest) {
     const protectedPrefixes = Object.values(ROLE_PREFIX);
     const accessingProtected = protectedPrefixes.find(p => pathnameWithoutLocale.startsWith(p));
 
-    // Wrong role section → redirect to correct dashboard
     if (accessingProtected && accessingProtected !== allowedPrefix) {
       return NextResponse.redirect(new URL(`/${locale}${ROLE_HOME[role]}`, request.url));
     }
 
-    // Root "/" → redirect to role dashboard
     if (pathnameWithoutLocale === "/") {
       return NextResponse.redirect(new URL(`/${locale}${ROLE_HOME[role]}`, request.url));
     }

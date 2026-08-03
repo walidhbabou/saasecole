@@ -5,7 +5,7 @@ import { useLocale } from "next-intl";
 import {
   LayoutDashboard, Users, BookOpen, ClipboardList,
   CalendarCheck, CreditCard, Settings, School,
-  Receipt, GraduationCap, ChevronRight, X, UserCog,
+  Receipt, GraduationCap, ChevronRight, X, UserCog, Contact,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AppProfile } from "@/components/layout/AppShell";
@@ -26,6 +26,7 @@ const NAV_ITEMS: Record<Role, NavItem[]> = {
     { labelFr: "Classes",         labelAr: "الأقسام",     href: "/admin/classes",   icon: BookOpen },
     { labelFr: "Inscriptions",    labelAr: "التسجيلات",   href: "/admin/enrollments", icon: ClipboardList },
     { labelFr: "Présences",       labelAr: "الحضور",      href: "/admin/attendance", icon: CalendarCheck },
+    { labelFr: "Parents",          labelAr: "أولياء الأمور", href: "/admin/parents",  icon: Contact },
     { labelFr: "Frais scolaires", labelAr: "الرسوم",      href: "/admin/fees",      icon: CreditCard },
     { labelFr: "Paramètres",      labelAr: "الإعدادات",   href: "/admin/settings",  icon: Settings },
   ],

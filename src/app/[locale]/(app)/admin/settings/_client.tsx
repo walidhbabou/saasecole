@@ -234,7 +234,9 @@ export function AdminSettingsClient({ locale, school }: Props) {
                   )}
                 </div>
               </div>
-              <Button variant="outline">{isAr ? "تغيير الخطة" : "Changer de plan"}</Button>
+              <Button variant="outline" onClick={() => window.open("mailto:support@madrasati.ma?subject=Changement%20de%20plan", "_blank")}>
+                {isAr ? "تغيير الخطة — تواصل معنا" : "Changer de plan — Nous contacter"}
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>

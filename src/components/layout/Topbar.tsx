@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useLocale } from "next-intl";
-import { Bell, Search, Menu, LogOut, User, ChevronDown, Globe } from "lucide-react";
+import { Search, Menu, LogOut, User, ChevronDown, Globe } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import {
 import { useRouter, usePathname } from "next/navigation";
 import { getInitials } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { NotificationsPanel } from "@/components/layout/NotificationsPanel";
 import type { AppProfile } from "@/components/layout/AppShell";
 
 const ROLE_LABELS: Record<string, { fr: string; ar: string }> = {
@@ -75,10 +76,7 @@ export function Topbar({ onToggleSidebar, profile }: TopbarProps) {
           {isAr ? "FR" : "AR"}
         </Button>
 
-        <Button variant="ghost" size="icon" className="relative h-8 w-8 text-slate-500">
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-red-500" />
-        </Button>
+        <NotificationsPanel isAr={isAr} />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -99,7 +97,7 @@ export function Topbar({ onToggleSidebar, profile }: TopbarProps) {
               <p className="text-xs text-slate-400 font-normal">{email}</p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push(`/${locale}/profile`)}>
               <User className="h-4 w-4" />
               {isAr ? "ملفي الشخصي" : "Mon profil"}
             </DropdownMenuItem>

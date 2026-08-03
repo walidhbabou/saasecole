@@ -199,6 +199,20 @@ CREATE TABLE IF NOT EXISTS fees (
 
 ALTER TABLE fees ENABLE ROW LEVEL SECURITY;
 
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+  actor_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  actor_role VARCHAR,
+  action VARCHAR NOT NULL,
+  entity_type VARCHAR NOT NULL,
+  entity_id UUID,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+
 -- ============================================================
 -- RLS POLICIES (admin voit tout son école, teacher ses classes)
 -- ============================================================
@@ -215,6 +229,30 @@ RETURNS VARCHAR LANGUAGE SQL SECURITY DEFINER AS $$
   SELECT role FROM profiles WHERE id = auth.uid()
 $$;
 
+-- Schools
+CREATE POLICY "School members see own school" ON schools
+  FOR SELECT USING (id = get_user_school_id() OR get_user_role() = 'super');
+
+CREATE POLICY "Admins update own school" ON schools
+  FOR UPDATE USING (id = get_user_school_id() AND get_user_role() = 'admin');
+
+CREATE POLICY "Super admins manage schools" ON schools
+  FOR ALL USING (get_user_role() = 'super') WITH CHECK (get_user_role() = 'super');
+
+-- Profiles
+CREATE POLICY "School members view school profiles" ON profiles
+  FOR SELECT USING (school_id IS NOT NULL AND school_id = get_user_school_id());
+
+CREATE POLICY "Super admin views all profiles" ON profiles
+  FOR SELECT USING (get_user_role() = 'super');
+
+-- Fee types
+CREATE POLICY "School members see fee types" ON fee_types
+  FOR SELECT USING (school_id = get_user_school_id());
+
+CREATE POLICY "Admin manages fee types" ON fee_types
+  FOR ALL USING (school_id = get_user_school_id() AND get_user_role() = 'admin');
+
 -- Students: admin sees all school students, parent sees own children
 CREATE POLICY "Admin sees school students" ON students
   FOR SELECT USING (
@@ -228,6 +266,106 @@ CREATE POLICY "Parent sees own children" ON students
 
 CREATE POLICY "Admin manages students" ON students
   FOR ALL USING (school_id = get_user_school_id() AND get_user_role() = 'admin');
+
+-- Student parents
+CREATE POLICY "Parent sees own links" ON student_parents
+  FOR SELECT USING (parent_id = auth.uid());
+
+CREATE POLICY "Admin manages school student_parents" ON student_parents
+  FOR ALL USING (
+    student_id IN (SELECT id FROM students WHERE school_id = get_user_school_id())
+    AND get_user_role() = 'admin'
+  );
+
+-- Enrollments
+CREATE POLICY "School members see enrollments" ON enrollments
+  FOR SELECT USING (school_id = get_user_school_id());
+
+CREATE POLICY "Admin manages enrollments" ON enrollments
+  FOR ALL USING (school_id = get_user_school_id() AND get_user_role() = 'admin');
+
+-- Attendance sessions
+CREATE POLICY "School members see attendance sessions" ON attendance_sessions
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM classes WHERE classes.id = attendance_sessions.class_id AND classes.school_id = get_user_school_id())
+  );
+
+CREATE POLICY "Admins manage attendance sessions" ON attendance_sessions
+  FOR ALL USING (
+    get_user_role() = 'admin'
+    AND EXISTS (SELECT 1 FROM classes WHERE classes.id = attendance_sessions.class_id AND classes.school_id = get_user_school_id())
+  ) WITH CHECK (
+    get_user_role() = 'admin'
+    AND EXISTS (SELECT 1 FROM classes WHERE classes.id = attendance_sessions.class_id AND classes.school_id = get_user_school_id())
+  );
+
+CREATE POLICY "Teachers manage own attendance sessions" ON attendance_sessions
+  FOR ALL USING (
+    get_user_role() = 'teacher'
+    AND teacher_id = auth.uid()
+    AND EXISTS (SELECT 1 FROM classes WHERE classes.id = attendance_sessions.class_id AND classes.school_id = get_user_school_id())
+  ) WITH CHECK (
+    get_user_role() = 'teacher'
+    AND teacher_id = auth.uid()
+    AND EXISTS (SELECT 1 FROM classes WHERE classes.id = attendance_sessions.class_id AND classes.school_id = get_user_school_id())
+  );
+
+-- Attendance records
+CREATE POLICY "School members see attendance records" ON attendance_records
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1
+      FROM attendance_sessions s
+      JOIN classes c ON c.id = s.class_id
+      WHERE s.id = attendance_records.session_id
+        AND c.school_id = get_user_school_id()
+    )
+    OR student_id IN (SELECT student_id FROM student_parents WHERE parent_id = auth.uid())
+  );
+
+CREATE POLICY "Admins manage attendance records" ON attendance_records
+  FOR ALL USING (
+    get_user_role() = 'admin'
+    AND EXISTS (
+      SELECT 1
+      FROM attendance_sessions s
+      JOIN classes c ON c.id = s.class_id
+      WHERE s.id = attendance_records.session_id
+        AND c.school_id = get_user_school_id()
+    )
+  ) WITH CHECK (
+    get_user_role() = 'admin'
+    AND EXISTS (
+      SELECT 1
+      FROM attendance_sessions s
+      JOIN classes c ON c.id = s.class_id
+      WHERE s.id = attendance_records.session_id
+        AND c.school_id = get_user_school_id()
+    )
+  );
+
+CREATE POLICY "Teachers manage own attendance records" ON attendance_records
+  FOR ALL USING (
+    get_user_role() = 'teacher'
+    AND EXISTS (
+      SELECT 1
+      FROM attendance_sessions s
+      JOIN classes c ON c.id = s.class_id
+      WHERE s.id = attendance_records.session_id
+        AND s.teacher_id = auth.uid()
+        AND c.school_id = get_user_school_id()
+    )
+  ) WITH CHECK (
+    get_user_role() = 'teacher'
+    AND EXISTS (
+      SELECT 1
+      FROM attendance_sessions s
+      JOIN classes c ON c.id = s.class_id
+      WHERE s.id = attendance_records.session_id
+        AND s.teacher_id = auth.uid()
+        AND c.school_id = get_user_school_id()
+    )
+  );
 
 -- Classes: all school members can see classes
 CREATE POLICY "School members see classes" ON classes
@@ -244,6 +382,15 @@ CREATE POLICY "Parent sees own fees" ON fees
   FOR SELECT USING (
     student_id IN (SELECT student_id FROM student_parents WHERE parent_id = auth.uid())
   );
+
+CREATE POLICY "Admin manages fees" ON fees
+  FOR ALL USING (school_id = get_user_school_id() AND get_user_role() = 'admin');
+
+CREATE POLICY "Super admins view all audit logs" ON audit_logs
+  FOR SELECT USING (get_user_role() = 'super');
+
+CREATE POLICY "School admins view own audit logs" ON audit_logs
+  FOR SELECT USING (school_id = get_user_school_id() AND get_user_role() = 'admin');
 
 -- ============================================================
 -- SEED: Demo school & users

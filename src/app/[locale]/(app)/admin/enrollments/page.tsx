@@ -1,11 +1,12 @@
 import { getLocale } from "next-intl/server";
-import { Search, ArrowRightLeft, MoreHorizontal, Plus } from "lucide-react";
+import { ArrowRightLeft, MoreHorizontal, Plus } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 import { getProfile, getEnrollments } from "@/lib/dal";
 
@@ -27,7 +28,9 @@ export default async function AdminEnrollmentsPage() {
         title={isAr ? "التسجيلات" : "Inscriptions"}
         description={`${enrollments.length} ${isAr ? "تسجيل نشط" : "inscriptions"} · 2025-2026`}
       >
-        <Button size="sm"><Plus className="h-4 w-4" />{isAr ? "تسجيل جديد" : "Nouvelle inscription"}</Button>
+        <Link href={`/${locale}/admin/students`}>
+          <Button size="sm"><Plus className="h-4 w-4" />{isAr ? "إضافة تلميذ" : "Ajouter un élève"}</Button>
+        </Link>
       </PageHeader>
 
       <Card>
@@ -69,8 +72,12 @@ export default async function AdminEnrollmentsPage() {
                         <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem><ArrowRightLeft className="h-4 w-4" />{isAr ? "نقل" : "Transférer"}</DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50">{isAr ? "سحب" : "Retirer"}</DropdownMenuItem>
+                        <DropdownMenuItem disabled>
+                          <ArrowRightLeft className="h-4 w-4" />{isAr ? "نقل (قريباً)" : "Transférer (bientôt)"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem disabled className="text-red-400">
+                          {isAr ? "سحب (قريباً)" : "Retirer (bientôt)"}
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
