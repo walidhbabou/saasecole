@@ -214,6 +214,17 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
+-- NOTIFICATION SNAPSHOTS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS notification_snapshots (
+  user_id UUID PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+  snapshot JSONB NOT NULL DEFAULT '[]'::jsonb,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE notification_snapshots ENABLE ROW LEVEL SECURITY;
+
+-- ============================================================
 -- RLS POLICIES (admin voit tout son école, teacher ses classes)
 -- ============================================================
 

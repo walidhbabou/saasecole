@@ -91,7 +91,7 @@ export const parentLinkSchema = z.object({
   studentId: z.string().trim().nullable(),
 });
 
-export function validateActionInput(schema: z.ZodTypeAny, input: unknown) {
+export function validateActionInput(schema: any, input: any): any {
   const parsed = schema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Données invalides" };

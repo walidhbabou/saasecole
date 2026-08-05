@@ -2,7 +2,7 @@
 import { useState, useTransition } from "react";
 import { Bell, XCircle, CalendarX, Banknote, UserPlus, Info, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { fetchNotifications } from "@/lib/actions";
+import { fetchNotifications, markNotificationsAsRead } from "@/lib/actions";
 import type { NotifItem } from "@/lib/dal";
 
 const ICON_MAP = {
@@ -61,6 +61,17 @@ export function NotificationsPanel({ isAr }: { isAr: boolean }) {
   }
 
   const hasUnread = items === null || items.length > 0;
+
+  function handleMarkAllRead() {
+    if (!items || items.length === 0) return;
+    startTransition(async () => {
+      const res = await markNotificationsAsRead();
+      if (!res.error) {
+        setItems([]);
+        setOpen(false);
+      }
+    });
+  }
 
   return (
     <div className="relative">
@@ -131,7 +142,7 @@ export function NotificationsPanel({ isAr }: { isAr: boolean }) {
             {items && items.length > 0 && (
               <div className="border-t border-slate-100 px-4 py-2.5">
                 <button
-                  onClick={() => { setItems([]); setOpen(false); }}
+                  onClick={handleMarkAllRead}
                   className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1"
                 >
                   <XCircle className="h-3.5 w-3.5" />

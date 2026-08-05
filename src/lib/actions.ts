@@ -25,6 +25,42 @@ import { logAuditEvent } from "./audit";
 
 const YEAR = "2025-2026";
 
+type StudentCreateInput = {
+  first_name: string;
+  last_name: string;
+  matricule: string;
+  gender: string;
+  birth_date: string;
+  class_id: string;
+};
+
+type TeacherCreateInput = {
+  first_name: string;
+  last_name: string;
+  email: string;
+  password: string;
+  phone?: string;
+};
+
+type TeacherUpdateInput = {
+  first_name: string;
+  last_name: string;
+  phone?: string;
+};
+
+type StudentUpdateInput = {
+  first_name: string;
+  last_name: string;
+  matricule: string;
+  gender: string;
+  birth_date: string;
+};
+
+type ClassCreateInput = {
+  name: string;
+  max_students: number;
+};
+
 function asErrorMessage(error: { message?: string } | null | undefined, fallback: string) {
   return error?.message ?? fallback;
 }
@@ -40,10 +76,12 @@ export async function addStudent(formData: {
   const profile = await getProfile();
   if (!profile?.school_id) return { error: ACTION_MESSAGES.profileMissing };
 
-  const parsed = validateActionInput(studentCreateSchema, formData);
+  const parsed = validateActionInput(studentCreateSchema, formData) as { data: StudentCreateInput } | { error: string };
   if ("error" in parsed) return { error: parsed.error };
 
-  const { class_id, ...studentFields } = parsed.data;
+  const studentData = parsed.data;
+
+  const { class_id, ...studentFields } = studentData;
 
   const { data: student, error } = await sb
     .from("students")
@@ -73,7 +111,7 @@ export async function addStudent(formData: {
     school_id: profile.school_id,
     actor_id: profile.id,
     actor_role: profile.role,
-    metadata: { class_id: parsed.data.class_id, matricule: student.matricule },
+    metadata: { class_id: studentData.class_id, matricule: student.matricule },
   });
 
   revalidatePath("/fr/admin/students");
@@ -88,15 +126,19 @@ export async function createTeacher(formData: {
   const profile = await getProfile();
   if (!isSchoolAdmin(profile)) return { error: ACTION_MESSAGES.accessDenied };
 
-  const parsed = validateActionInput(teacherCreateSchema, formData);
+  const parsed = validateActionInput(teacherCreateSchema, formData) as { data: TeacherCreateInput } | { error: string };
   if ("error" in parsed) return { error: parsed.error };
+
+  const teacherData = parsed.data;
+
+  const currentProfile = profile!;
 
   const admin = createAdminClient();
   const { data: authData, error: authErr } = await admin.auth.admin.createUser({
-    email: parsed.data.email,
-    password: parsed.data.password,
+    email: teacherData.email,
+    password: teacherData.password,
     email_confirm: true,
-    user_metadata: { role: "teacher", first_name: parsed.data.first_name, last_name: parsed.data.last_name },
+    user_metadata: { role: "teacher", first_name: teacherData.first_name, last_name: teacherData.last_name },
   });
   if (authErr || !authData.user) return { error: asErrorMessage(authErr, ACTION_MESSAGES.createTeacherAccount) };
 
@@ -104,11 +146,11 @@ export async function createTeacher(formData: {
     .from("profiles")
     .upsert({
       id: authData.user.id,
-      school_id: profile.school_id,
+      school_id: currentProfile.school_id,
       role: "teacher",
-      first_name: parsed.data.first_name,
-      last_name: parsed.data.last_name,
-      phone: parsed.data.phone || null,
+      first_name: teacherData.first_name,
+      last_name: teacherData.last_name,
+      phone: teacherData.phone || null,
     });
 
   if (profileErr) {
@@ -120,10 +162,10 @@ export async function createTeacher(formData: {
     action: "create",
     entity_type: "teacher",
     entity_id: authData.user.id,
-    school_id: profile.school_id,
-    actor_id: profile.id,
-    actor_role: profile.role,
-    metadata: { email: parsed.data.email },
+    school_id: currentProfile.school_id,
+    actor_id: currentProfile.id,
+    actor_role: currentProfile.role,
+    metadata: { email: teacherData.email },
   });
 
   revalidatePath("/fr/admin/teachers");
@@ -148,18 +190,21 @@ export async function updateTeacher(teacherId: string, data: {
   const profile = await getProfile();
   if (!isSchoolAdmin(profile)) return { error: ACTION_MESSAGES.accessDenied };
 
-  const parsed = validateActionInput(teacherUpdateSchema, data);
+  const parsed = validateActionInput(teacherUpdateSchema, data) as { data: TeacherUpdateInput } | { error: string };
   if ("error" in parsed) return { error: parsed.error };
+
+  const teacherData = parsed.data;
+  const currentProfile = profile!;
 
   const { error } = await sb
     .from("profiles")
     .update({
-      first_name: parsed.data.first_name,
-      last_name: parsed.data.last_name,
-      phone: parsed.data.phone || null,
+      first_name: teacherData.first_name,
+      last_name: teacherData.last_name,
+      phone: teacherData.phone || null,
     })
     .eq("id", teacherId)
-    .eq("school_id", profile.school_id!)
+    .eq("school_id", currentProfile.school_id!)
     .eq("role", "teacher");
 
   if (error) return { error: asErrorMessage(error, ACTION_MESSAGES.updateTeacher) };
@@ -168,9 +213,9 @@ export async function updateTeacher(teacherId: string, data: {
     action: "update",
     entity_type: "teacher",
     entity_id: teacherId,
-    school_id: profile.school_id,
-    actor_id: profile.id,
-    actor_role: profile.role,
+    school_id: currentProfile.school_id,
+    actor_id: currentProfile.id,
+    actor_role: currentProfile.role,
   });
 
   revalidatePath("/fr/admin/teachers");
@@ -183,7 +228,9 @@ export async function deleteTeacher(teacherId: string) {
   const profile = await getProfile();
   if (!isSchoolAdmin(profile)) return { error: ACTION_MESSAGES.accessDenied };
 
-  const { error: detachErr } = await sb.from("classes").update({ teacher_id: null }).eq("teacher_id", teacherId).eq("school_id", profile.school_id!);
+  const currentProfile = profile!;
+
+  const { error: detachErr } = await sb.from("classes").update({ teacher_id: null }).eq("teacher_id", teacherId).eq("school_id", currentProfile.school_id!);
   if (detachErr) return { error: asErrorMessage(detachErr, ACTION_MESSAGES.deleteTeacherDetach) };
 
   const admin = createAdminClient();
@@ -194,9 +241,9 @@ export async function deleteTeacher(teacherId: string) {
     action: "delete",
     entity_type: "teacher",
     entity_id: teacherId,
-    school_id: profile.school_id,
-    actor_id: profile.id,
-    actor_role: profile.role,
+    school_id: currentProfile.school_id,
+    actor_id: currentProfile.id,
+    actor_role: currentProfile.role,
   });
 
   revalidatePath("/fr/admin/teachers");
@@ -211,23 +258,25 @@ export async function assignTeacherToClass(classId: string, teacherId: string | 
   const profile = await getProfile();
   if (!isSchoolAdmin(profile)) return { error: ACTION_MESSAGES.accessDenied };
 
+  const currentProfile = profile!;
+
   if (teacherId) {
     const { error: clearErr } = await sb.from("classes").update({ teacher_id: null })
       .eq("teacher_id", teacherId)
-      .eq("school_id", profile.school_id!);
+      .eq("school_id", currentProfile.school_id!);
     if (clearErr) return { error: asErrorMessage(clearErr, ACTION_MESSAGES.assignTeacher) };
   }
 
-  const { error } = await sb.from("classes").update({ teacher_id: teacherId }).eq("id", classId).eq("school_id", profile.school_id!);
+  const { error } = await sb.from("classes").update({ teacher_id: teacherId }).eq("id", classId).eq("school_id", currentProfile.school_id!);
   if (error) return { error: asErrorMessage(error, ACTION_MESSAGES.assignTeacher) };
 
   await logAuditEvent({
     action: teacherId ? "assign" : "unassign",
     entity_type: "class",
     entity_id: classId,
-    school_id: profile.school_id,
-    actor_id: profile.id,
-    actor_role: profile.role,
+    school_id: currentProfile.school_id,
+    actor_id: currentProfile.id,
+    actor_role: currentProfile.role,
     metadata: { teacher_id: teacherId },
   });
 
@@ -245,25 +294,28 @@ export async function updateStudent(studentId: string, data: {
   const profile = await getProfile();
   if (!isSchoolAdmin(profile)) return { error: ACTION_MESSAGES.accessDenied };
 
-  const parsed = validateActionInput(studentUpdateSchema, data);
+  const parsed = validateActionInput(studentUpdateSchema, data) as { data: StudentUpdateInput } | { error: string };
   if ("error" in parsed) return { error: parsed.error };
 
+  const studentData = parsed.data;
+  const currentProfile = profile!;
+
   const { error } = await sb.from("students").update({
-    first_name: parsed.data.first_name,
-    last_name: parsed.data.last_name,
-    matricule: parsed.data.matricule,
-    gender: parsed.data.gender,
-    birth_date: parsed.data.birth_date || null,
-  }).eq("id", studentId).eq("school_id", profile.school_id!);
+    first_name: studentData.first_name,
+    last_name: studentData.last_name,
+    matricule: studentData.matricule,
+    gender: studentData.gender,
+    birth_date: studentData.birth_date || null,
+  }).eq("id", studentId).eq("school_id", currentProfile.school_id!);
   if (error) return { error: asErrorMessage(error, ACTION_MESSAGES.updateStudent) };
 
   await logAuditEvent({
     action: "update",
     entity_type: "student",
     entity_id: studentId,
-    school_id: profile.school_id,
-    actor_id: profile.id,
-    actor_role: profile.role,
+    school_id: currentProfile.school_id,
+    actor_id: currentProfile.id,
+    actor_role: currentProfile.role,
   });
   revalidatePath("/fr/admin/students");
   revalidatePath("/ar/admin/students");
@@ -275,16 +327,18 @@ export async function deleteStudent(studentId: string) {
   const profile = await getProfile();
   if (!isSchoolAdmin(profile)) return { error: ACTION_MESSAGES.accessDenied };
 
-  const { error } = await sb.from("students").delete().eq("id", studentId).eq("school_id", profile.school_id!);
+  const currentProfile = profile!;
+
+  const { error } = await sb.from("students").delete().eq("id", studentId).eq("school_id", currentProfile.school_id!);
   if (error) return { error: asErrorMessage(error, ACTION_MESSAGES.deleteStudent) };
 
   await logAuditEvent({
     action: "delete",
     entity_type: "student",
     entity_id: studentId,
-    school_id: profile.school_id,
-    actor_id: profile.id,
-    actor_role: profile.role,
+    school_id: currentProfile.school_id,
+    actor_id: currentProfile.id,
+    actor_role: currentProfile.role,
   });
   revalidatePath("/fr/admin/students");
   revalidatePath("/ar/admin/students");
@@ -297,13 +351,16 @@ export async function addClass(formData: { name: string; max_students: number })
   const profile = await getProfile();
   if (!profile?.school_id) return { error: ACTION_MESSAGES.profileMissing };
 
-  const parsed = validateActionInput(classCreateSchema, formData);
+  const parsed = validateActionInput(classCreateSchema, formData) as { data: ClassCreateInput } | { error: string };
   if ("error" in parsed) return { error: parsed.error };
 
+  const classData = parsed.data;
+  const currentProfile = profile!;
+
   const { error } = await sb.from("classes").insert({
-    school_id: profile.school_id,
-    name: parsed.data.name,
-    max_students: parsed.data.max_students,
+    school_id: currentProfile.school_id,
+    name: classData.name,
+    max_students: classData.max_students,
     academic_year: YEAR,
   });
 
@@ -312,10 +369,10 @@ export async function addClass(formData: { name: string; max_students: number })
   await logAuditEvent({
     action: "create",
     entity_type: "class",
-    school_id: profile.school_id,
-    actor_id: profile.id,
-    actor_role: profile.role,
-    metadata: { name: parsed.data.name, max_students: parsed.data.max_students },
+    school_id: currentProfile.school_id,
+    actor_id: currentProfile.id,
+    actor_role: currentProfile.role,
+    metadata: { name: classData.name, max_students: classData.max_students },
   });
   revalidatePath("/fr/admin/classes");
   revalidatePath("/ar/admin/classes");
@@ -389,6 +446,12 @@ export async function saveAttendance(
     actor_role: profile?.role,
     metadata: { class_id: parsed.data.classId, date: parsed.data.date, period: parsed.data.period },
   });
+
+  revalidatePath("/fr/admin/attendance");
+  revalidatePath("/ar/admin/attendance");
+  revalidatePath("/fr/teacher/attendance");
+  revalidatePath("/ar/teacher/attendance");
+
   return { success: true };
 }
 
@@ -765,8 +828,34 @@ export async function fetchNotifications() {
     .single();
   if (!profile) return [];
 
-  const { getNotificationsData } = await import("./dal");
-  return getNotificationsData(profile.role, profile.school_id, profile.id);
+  const { getNotificationsData, getNotificationSnapshot } = await import("./dal");
+  const [items, snapshot] = await Promise.all([
+    getNotificationsData(profile.role, profile.school_id, profile.id),
+    getNotificationSnapshot(profile.id),
+  ]);
+  const seen = new Set(snapshot);
+  return items.filter((item) => !seen.has(`${item.id}:${item.type}:${item.count}:${item.extra ?? ""}`));
+}
+
+export async function markNotificationsAsRead() {
+  const sb = await createClient();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return { error: ACTION_MESSAGES.unauthenticated };
+
+  const { data: profile } = await sb
+    .from("profiles")
+    .select("id, role, school_id")
+    .eq("id", user.id)
+    .single();
+  if (!profile) return { error: ACTION_MESSAGES.unauthenticated };
+
+  const { getNotificationsData, saveNotificationSnapshot, getNotificationItemKey } = await import("./dal");
+  const items = await getNotificationsData(profile.role, profile.school_id, profile.id);
+  const snapshot = items.map(getNotificationItemKey);
+  const { error } = await saveNotificationSnapshot(profile.id, snapshot);
+  if (error) return { error: asErrorMessage(error, "Erreur sauvegarde notifications") };
+
+  return { success: true };
 }
 
 export async function toggleSchoolStatus(schoolId: string, currentStatus: string) {

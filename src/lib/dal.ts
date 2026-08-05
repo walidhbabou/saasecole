@@ -22,6 +22,53 @@ export async function getProfile() {
   return data;
 }
 
+// ── Auth / login bootstrap ────────────────────────────────────────────────
+type LoginDemoProfile = {
+  role: "super" | "admin" | "teacher" | "parent";
+  email: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  school: { id: string; name: string }[] | null;
+};
+
+export async function getLoginDemoUsers() {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("profiles")
+    .select("id, role, first_name, last_name, school:schools(id, name), email")
+    .in("role", ["super", "admin", "teacher", "parent"])
+    .order("first_name");
+
+  const roleOrder = ["super", "admin", "teacher", "parent"];
+  return (data ?? [])
+    .map((profile) => {
+      const typedProfile = profile as unknown as LoginDemoProfile;
+      const school = typedProfile.school?.[0] ?? null;
+      return {
+        role: typedProfile.role,
+        email: typedProfile.email ?? "",
+        name: `${typedProfile.first_name ?? ""} ${typedProfile.last_name ?? ""}`.trim() || typedProfile.role,
+        school: typedProfile.role === "super" ? "Console Plateforme" : school?.name ?? "",
+        schoolId: school?.id ?? null,
+        redirect: `/${typedProfile.role === "super" ? "super" : typedProfile.role}/dashboard`,
+      };
+    })
+    .sort((a, b) => roleOrder.indexOf(a.role) - roleOrder.indexOf(b.role));
+}
+
+export async function getLoginPlatformStats() {
+  const admin = createAdminClient();
+  const [schoolsRes, studentsRes] = await Promise.all([
+    admin.from("schools").select("id", { count: "exact", head: true }),
+    admin.from("students").select("id", { count: "exact", head: true }),
+  ]);
+
+  return {
+    schools: schoolsRes.count ?? 0,
+    students: studentsRes.count ?? 0,
+  };
+}
+
 // ── Admin ──────────────────────────────────────────────────────────────────
 export async function getAdminStats(schoolId: string) {
   const sb = await createClient();
@@ -522,6 +569,10 @@ export type NotifItem = {
   extra?: string;
 };
 
+function notificationKey(item: NotifItem) {
+  return `${item.id}:${item.type}:${item.count}:${item.extra ?? ""}`;
+}
+
 export async function getNotificationsData(
   role: string,
   schoolId: string | null,
@@ -607,6 +658,31 @@ export async function getNotificationsData(
   }
 
   return items;
+}
+
+export async function getNotificationSnapshot(userId: string) {
+  const sb = await createClient();
+  const { data } = await sb
+    .from("notification_snapshots")
+    .select("snapshot")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const snapshot = data?.snapshot;
+  return Array.isArray(snapshot) ? (snapshot as string[]) : [];
+}
+
+export async function saveNotificationSnapshot(userId: string, snapshot: string[]) {
+  const sb = await createClient();
+  const { error } = await sb
+    .from("notification_snapshots")
+    .upsert({ user_id: userId, snapshot, updated_at: new Date().toISOString() });
+
+  return { error };
+}
+
+export function getNotificationItemKey(item: NotifItem) {
+  return notificationKey(item);
 }
 
 // ── School detail ──────────────────────────────────────────────────────────

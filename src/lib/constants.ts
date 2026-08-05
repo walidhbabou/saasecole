@@ -14,57 +14,6 @@ export interface DemoUser {
   labelAr: string;
 }
 
-export const DEMO_USERS: DemoUser[] = [
-  {
-    role: "super",
-    name: "Mehdi Alaoui",
-    nameAr: "مهدي العلوي",
-    email: "super@madrasati.ma",
-    school: "Console Plateforme",
-    schoolId: "platform",
-    redirect: "/super/dashboard",
-    color: "purple",
-    labelFr: "Super Admin",
-    labelAr: "مدير المنصة",
-  },
-  {
-    role: "admin",
-    name: "Rachid Benali",
-    nameAr: "رشيد بنعلي",
-    email: "admin@alamal.ma",
-    school: "École Al Amal",
-    schoolId: "sch2",
-    redirect: "/admin/dashboard",
-    color: "blue",
-    labelFr: "Directeur",
-    labelAr: "مدير المدرسة",
-  },
-  {
-    role: "teacher",
-    name: "Zineb Chraibi",
-    nameAr: "زينب الشرايبي",
-    email: "teacher@alamal.ma",
-    school: "École Al Amal",
-    schoolId: "sch2",
-    redirect: "/teacher/dashboard",
-    color: "emerald",
-    labelFr: "Enseignante",
-    labelAr: "أستاذة",
-  },
-  {
-    role: "parent",
-    name: "Omar Kettani",
-    nameAr: "عمر القطاني",
-    email: "parent@alamal.ma",
-    school: "École Al Amal",
-    schoolId: "sch2",
-    redirect: "/parent/dashboard",
-    color: "amber",
-    labelFr: "Parent",
-    labelAr: "ولي أمر",
-  },
-];
-
 // ─── Pricing plans ────────────────────────────────────────
 export const PLANS = [
   {
