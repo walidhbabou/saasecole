@@ -707,11 +707,11 @@ export async function getAllSchools() {
 }
 
 export async function getSuperStats() {
-  const sb = await createClient();
+  const admin = createAdminClient();
   const [schoolsRes, studentsRes, feesRes] = await Promise.all([
-    sb.from("schools").select("id, subscription_status"),
-    sb.from("students").select("id", { count: "exact", head: true }),
-    sb.from("fees").select("amount").eq("status", "paid"),
+    admin.from("schools").select("id, subscription_status"),
+    admin.from("students").select("id", { count: "exact", head: true }),
+    admin.from("fees").select("amount").eq("status", "paid"),
   ]);
   const schools = schoolsRes.data ?? [];
   return {

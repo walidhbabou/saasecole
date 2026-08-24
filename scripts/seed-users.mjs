@@ -70,6 +70,43 @@ async function createAuthUser(serviceKey, email, password, meta) {
   return data;
 }
 
+async function findAuthUserByEmail(serviceKey, email) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?per_page=1000`, {
+    headers: {
+      Authorization: `Bearer ${serviceKey}`,
+      apikey: serviceKey,
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`Impossible de lister les utilisateurs Auth: ${res.status}`);
+  }
+
+  const data = await res.json();
+  return (data?.users ?? []).find((user) => user.email === email) ?? null;
+}
+
+async function updateAuthUser(serviceKey, userId, password, meta) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${serviceKey}`,
+      apikey: serviceKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      password,
+      email_confirm: true,
+      user_metadata: meta,
+    }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(JSON.stringify(data));
+  }
+  return data;
+}
+
 // ── 3. Exécuter du SQL via l'API Management ────────────────
 async function runSQL(sql) {
   const res = await fetch(
@@ -165,12 +202,16 @@ async function main() {
     try {
       const authUser = await createAuthUser(serviceKey, user.email, user.password, user.meta);
 
-      if (!authUser) {
-        console.log("⚠ compte existe déjà");
-        continue;
+      let userId = authUser?.id ?? null;
+      if (!userId) {
+        const existingUser = await findAuthUserByEmail(serviceKey, user.email);
+        if (!existingUser) {
+          throw new Error("utilisateur Auth introuvable après conflit");
+        }
+        userId = existingUser.id;
+        await updateAuthUser(serviceKey, userId, user.password, user.meta);
+        console.log("✓ mot de passe réinitialisé");
       }
-
-      const userId = authUser.id;
 
       // Récupérer l'ID de l'école si nécessaire
       let schoolIdSQL = "NULL";
@@ -188,7 +229,9 @@ async function main() {
         WHERE id = '${userId}';
       `);
 
-      console.log("✓");
+      if (authUser) {
+        console.log("✓");
+      }
     } catch (e) {
       console.log(`✗ ${e.message.slice(0, 80)}`);
     }
