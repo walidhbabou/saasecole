@@ -383,17 +383,18 @@ export async function deleteClass(classId: string) {
   const sb = await createClient();
   const profile = await getProfile();
   if (!isSchoolAdmin(profile)) return { error: ACTION_MESSAGES.accessDenied };
+  const currentProfile = profile!;
 
-  const { error } = await sb.from("classes").delete().eq("id", classId).eq("school_id", profile.school_id!);
+  const { error } = await sb.from("classes").delete().eq("id", classId).eq("school_id", currentProfile.school_id!);
   if (error) return { error: asErrorMessage(error, ACTION_MESSAGES.deleteClass) };
 
   await logAuditEvent({
     action: "delete",
     entity_type: "class",
     entity_id: classId,
-    school_id: profile.school_id,
-    actor_id: profile.id,
-    actor_role: profile.role,
+    school_id: currentProfile.school_id,
+    actor_id: currentProfile.id,
+    actor_role: currentProfile.role,
   });
   revalidatePath("/fr/admin/classes");
   revalidatePath("/ar/admin/classes");
@@ -460,21 +461,22 @@ export async function markFeePaid(feeId: string) {
   const sb = await createClient();
   const profile = await getProfile();
   if (!isSchoolAdmin(profile)) return { error: ACTION_MESSAGES.accessDenied };
+  const currentProfile = profile!;
 
   const { error } = await sb
     .from("fees")
     .update({ status: "paid", paid_at: new Date().toISOString() })
     .eq("id", feeId)
-    .eq("school_id", profile.school_id!);
+    .eq("school_id", currentProfile.school_id!);
   if (error) return { error: asErrorMessage(error, ACTION_MESSAGES.markFeePaid) };
 
   await logAuditEvent({
     action: "update",
     entity_type: "fee",
     entity_id: feeId,
-    school_id: profile.school_id,
-    actor_id: profile.id,
-    actor_role: profile.role,
+    school_id: currentProfile.school_id,
+    actor_id: currentProfile.id,
+    actor_role: currentProfile.role,
     metadata: { status: "paid" },
   });
   revalidatePath("/fr/admin/fees");
@@ -489,6 +491,7 @@ export async function updateSchool(formData: {
   const sb = await createClient();
   const profile = await getProfile();
   if (!isSchoolAdmin(profile)) return { error: ACTION_MESSAGES.accessDenied };
+  const currentProfile = profile!;
 
   const parsed = validateActionInput(schoolUpdateSchema, formData);
   if ("error" in parsed) return { error: parsed.error };
@@ -504,17 +507,17 @@ export async function updateSchool(formData: {
       city: parsed.data.city || null,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", profile.school_id);
+    .eq("id", currentProfile.school_id);
 
   if (error) return { error: asErrorMessage(error, ACTION_MESSAGES.updateSchool) };
 
   await logAuditEvent({
     action: "update",
     entity_type: "school",
-    entity_id: profile.school_id,
-    school_id: profile.school_id,
-    actor_id: profile.id,
-    actor_role: profile.role,
+    entity_id: currentProfile.school_id,
+    school_id: currentProfile.school_id,
+    actor_id: currentProfile.id,
+    actor_role: currentProfile.role,
   });
   revalidatePath("/fr/admin/settings");
   revalidatePath("/ar/admin/settings");
@@ -527,6 +530,7 @@ export async function updateNotificationPrefs(prefs: {
   const sb = await createClient();
   const profile = await getProfile();
   if (!isSchoolAdmin(profile)) return { error: ACTION_MESSAGES.accessDenied };
+  const currentProfile = profile!;
 
   const parsed = validateActionInput(notificationPrefsSchema, prefs);
   if ("error" in parsed) return { error: parsed.error };
@@ -534,17 +538,17 @@ export async function updateNotificationPrefs(prefs: {
   const { error } = await sb
     .from("schools")
     .update({ notification_prefs: parsed.data, updated_at: new Date().toISOString() })
-    .eq("id", profile.school_id);
+    .eq("id", currentProfile.school_id);
 
   if (error) return { error: asErrorMessage(error, ACTION_MESSAGES.updateNotifications) };
 
   await logAuditEvent({
     action: "update",
     entity_type: "notification_prefs",
-    entity_id: profile.school_id,
-    school_id: profile.school_id,
-    actor_id: profile.id,
-    actor_role: profile.role,
+    entity_id: currentProfile.school_id,
+    school_id: currentProfile.school_id,
+    actor_id: currentProfile.id,
+    actor_role: currentProfile.role,
     metadata: parsed.data,
   });
   revalidatePath("/fr/admin/settings");
@@ -560,6 +564,7 @@ export async function createSchoolWithAdmin(formData: {
   const sb = await createClient();
   const profile = await getProfile();
   if (profile?.role !== "super") return { error: ACTION_MESSAGES.accessDenied };
+  const currentProfile = profile!;
 
   const parsed = validateActionInput(schoolCreateSchema, formData);
   if ("error" in parsed) return { error: parsed.error };
@@ -618,8 +623,8 @@ export async function createSchoolWithAdmin(formData: {
     entity_type: "school",
     entity_id: school.id,
     school_id: school.id,
-    actor_id: profile.id,
-    actor_role: profile.role,
+    actor_id: currentProfile.id,
+    actor_role: currentProfile.role,
     metadata: { plan: parsed.data.plan },
   });
 
@@ -637,6 +642,7 @@ export async function createParent(formData: {
 }) {
   const profile = await getProfile();
   if (!isSchoolAdmin(profile)) return { error: ACTION_MESSAGES.accessDenied };
+  const currentProfile = profile!;
 
   const parsed = validateActionInput(parentCreateSchema, formData);
   if ("error" in parsed) return { error: parsed.error };
@@ -652,7 +658,7 @@ export async function createParent(formData: {
 
   const { error: profileErr } = await admin.from("profiles").upsert({
     id: authData.user.id,
-    school_id: profile.school_id,
+    school_id: currentProfile.school_id,
     role: "parent",
     first_name: parsed.data.first_name,
     last_name: parsed.data.last_name,
@@ -688,9 +694,9 @@ export async function createParent(formData: {
     action: "create",
     entity_type: "parent",
     entity_id: authData.user.id,
-    school_id: profile.school_id,
-    actor_id: profile.id,
-    actor_role: profile.role,
+    school_id: currentProfile.school_id,
+    actor_id: currentProfile.id,
+    actor_role: currentProfile.role,
     metadata: { linked_student_id: parsed.data.student_id || null },
   });
 
@@ -714,6 +720,7 @@ export async function updateParent(parentId: string, data: {
 }) {
   const profile = await getProfile();
   if (!isSchoolAdmin(profile)) return { error: ACTION_MESSAGES.accessDenied };
+  const currentProfile = profile!;
 
   const parsed = validateActionInput(parentUpdateSchema, data);
   if ("error" in parsed) return { error: parsed.error };
@@ -723,7 +730,7 @@ export async function updateParent(parentId: string, data: {
     .from("profiles")
     .update({ first_name: parsed.data.first_name, last_name: parsed.data.last_name, phone: parsed.data.phone || null })
     .eq("id", parentId)
-    .eq("school_id", profile.school_id!);
+    .eq("school_id", currentProfile.school_id!);
 
   if (error) return { error: asErrorMessage(error, ACTION_MESSAGES.updateParent) };
 
@@ -731,9 +738,9 @@ export async function updateParent(parentId: string, data: {
     action: "update",
     entity_type: "parent",
     entity_id: parentId,
-    school_id: profile.school_id,
-    actor_id: profile.id,
-    actor_role: profile.role,
+    school_id: currentProfile.school_id,
+    actor_id: currentProfile.id,
+    actor_role: currentProfile.role,
   });
   revalidatePath("/fr/admin/parents");
   revalidatePath("/ar/admin/parents");
@@ -743,6 +750,7 @@ export async function updateParent(parentId: string, data: {
 export async function deleteParent(parentId: string) {
   const profile = await getProfile();
   if (!isSchoolAdmin(profile)) return { error: ACTION_MESSAGES.accessDenied };
+  const currentProfile = profile!;
 
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.deleteUser(parentId);
@@ -752,9 +760,9 @@ export async function deleteParent(parentId: string) {
     action: "delete",
     entity_type: "parent",
     entity_id: parentId,
-    school_id: profile.school_id,
-    actor_id: profile.id,
-    actor_role: profile.role,
+    school_id: currentProfile.school_id,
+    actor_id: currentProfile.id,
+    actor_role: currentProfile.role,
   });
 
   revalidatePath("/fr/admin/parents");
@@ -765,6 +773,7 @@ export async function deleteParent(parentId: string) {
 export async function linkParentToStudent(parentId: string, studentId: string | null) {
   const profile = await getProfile();
   if (!isSchoolAdmin(profile)) return { error: ACTION_MESSAGES.accessDenied };
+  const currentProfile = profile!;
 
   const parsed = validateActionInput(parentLinkSchema, { parentId, studentId });
   if ("error" in parsed) return { error: parsed.error };
@@ -787,9 +796,9 @@ export async function linkParentToStudent(parentId: string, studentId: string | 
     action: "update",
     entity_type: "parent_student_link",
     entity_id: parentId,
-    school_id: profile.school_id,
-    actor_id: profile.id,
-    actor_role: profile.role,
+    school_id: currentProfile.school_id,
+    actor_id: currentProfile.id,
+    actor_role: currentProfile.role,
     metadata: { student_id: parsed.data.studentId || null },
   });
 
