@@ -14,44 +14,45 @@ import type { Role } from "@/types";
 interface NavItem {
   labelFr: string;
   labelAr: string;
+  labelEn: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
 }
 
 const NAV_ITEMS: Record<Role, NavItem[]> = {
   admin: [
-    { labelFr: "Tableau de bord", labelAr: "لوحة التحكم", href: "/admin/dashboard", icon: LayoutDashboard },
-    { labelFr: "Élèves",          labelAr: "التلاميذ",    href: "/admin/students",  icon: Users },
-    { labelFr: "Enseignants",     labelAr: "الأساتذة",    href: "/admin/teachers",  icon: UserCog },
-    { labelFr: "Classes",         labelAr: "الأقسام",     href: "/admin/classes",   icon: BookOpen },
-    { labelFr: "Inscriptions",    labelAr: "التسجيلات",   href: "/admin/enrollments", icon: ClipboardList },
-    { labelFr: "Présences",       labelAr: "الحضور",      href: "/admin/attendance", icon: CalendarCheck },
-    { labelFr: "Parents",          labelAr: "أولياء الأمور", href: "/admin/parents",  icon: Contact },
-    { labelFr: "Frais scolaires", labelAr: "الرسوم",      href: "/admin/fees",      icon: CreditCard },
-    { labelFr: "Paramètres",      labelAr: "الإعدادات",   href: "/admin/settings",  icon: Settings },
+    { labelFr: "Tableau de bord", labelAr: "لوحة التحكم", labelEn: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+    { labelFr: "Élèves", labelAr: "التلاميذ", labelEn: "Students", href: "/admin/students", icon: Users },
+    { labelFr: "Enseignants", labelAr: "الأساتذة", labelEn: "Teachers", href: "/admin/teachers", icon: UserCog },
+    { labelFr: "Classes", labelAr: "الأقسام", labelEn: "Classes", href: "/admin/classes", icon: BookOpen },
+    { labelFr: "Inscriptions", labelAr: "التسجيلات", labelEn: "Enrollments", href: "/admin/enrollments", icon: ClipboardList },
+    { labelFr: "Présences", labelAr: "الحضور", labelEn: "Attendance", href: "/admin/attendance", icon: CalendarCheck },
+    { labelFr: "Parents", labelAr: "أولياء الأمور", labelEn: "Parents", href: "/admin/parents", icon: Contact },
+    { labelFr: "Frais scolaires", labelAr: "الرسوم", labelEn: "School fees", href: "/admin/fees", icon: CreditCard },
+    { labelFr: "Paramètres", labelAr: "الإعدادات", labelEn: "Settings", href: "/admin/settings", icon: Settings },
   ],
   teacher: [
-    { labelFr: "Tableau de bord", labelAr: "لوحة التحكم", href: "/teacher/dashboard", icon: LayoutDashboard },
-    { labelFr: "Faire l'appel",   labelAr: "تسجيل الحضور", href: "/teacher/attendance", icon: CalendarCheck },
-    { labelFr: "Mes élèves",      labelAr: "تلاميذي",     href: "/teacher/students", icon: Users },
+    { labelFr: "Tableau de bord", labelAr: "لوحة التحكم", labelEn: "Dashboard", href: "/teacher/dashboard", icon: LayoutDashboard },
+    { labelFr: "Faire l'appel", labelAr: "تسجيل الحضور", labelEn: "Take attendance", href: "/teacher/attendance", icon: CalendarCheck },
+    { labelFr: "Mes élèves", labelAr: "تلاميذي", labelEn: "My students", href: "/teacher/students", icon: Users },
   ],
   parent: [
-    { labelFr: "Tableau de bord", labelAr: "لوحة التحكم", href: "/parent/dashboard", icon: LayoutDashboard },
-    { labelFr: "Présences",       labelAr: "الحضور",      href: "/parent/attendance", icon: CalendarCheck },
-    { labelFr: "Frais scolaires", labelAr: "الرسوم",      href: "/parent/fees", icon: CreditCard },
+    { labelFr: "Tableau de bord", labelAr: "لوحة التحكم", labelEn: "Dashboard", href: "/parent/dashboard", icon: LayoutDashboard },
+    { labelFr: "Présences", labelAr: "الحضور", labelEn: "Attendance", href: "/parent/attendance", icon: CalendarCheck },
+    { labelFr: "Frais scolaires", labelAr: "الرسوم", labelEn: "School fees", href: "/parent/fees", icon: CreditCard },
   ],
   super: [
-    { labelFr: "Tableau de bord", labelAr: "لوحة التحكم", href: "/super/dashboard", icon: LayoutDashboard },
-    { labelFr: "Écoles",          labelAr: "المدارس",     href: "/super/schools",   icon: School },
-    { labelFr: "Facturation",     labelAr: "الفوترة",     href: "/super/billing",   icon: Receipt },
+    { labelFr: "Tableau de bord", labelAr: "لوحة التحكم", labelEn: "Dashboard", href: "/super/dashboard", icon: LayoutDashboard },
+    { labelFr: "Écoles", labelAr: "المدارس", labelEn: "Schools", href: "/super/schools", icon: School },
+    { labelFr: "Facturation", labelAr: "الفوترة", labelEn: "Billing", href: "/super/billing", icon: Receipt },
   ],
 };
 
-const ROLE_LABELS: Record<Role, { fr: string; ar: string }> = {
-  super:   { fr: "Super Admin",  ar: "مشرف المنصة" },
-  admin:   { fr: "Directeur",    ar: "مدير" },
-  teacher: { fr: "Enseignant",   ar: "أستاذ" },
-  parent:  { fr: "Parent",       ar: "ولي أمر" },
+const ROLE_LABELS: Record<Role, { fr: string; ar: string; en: string }> = {
+  super: { fr: "Super Admin", ar: "مشرف المنصة", en: "Super Admin" },
+  admin: { fr: "Directeur", ar: "مدير", en: "Principal" },
+  teacher: { fr: "Enseignant", ar: "أستاذ", en: "Teacher" },
+  parent: { fr: "Parent", ar: "ولي أمر", en: "Parent" },
 };
 
 interface SidebarProps {
@@ -64,9 +65,10 @@ export function Sidebar({ collapsed, onClose, profile }: SidebarProps) {
   const locale = useLocale();
   const pathname = usePathname();
   const isAr = locale === "ar";
+  const isEn = locale === "en";
   const role = (profile.role as Role) in NAV_ITEMS ? (profile.role as Role) : "admin";
   const navItems = NAV_ITEMS[role];
-  const roleLabel = ROLE_LABELS[role]?.[isAr ? "ar" : "fr"] ?? role;
+  const roleLabel = ROLE_LABELS[role]?.[isAr ? "ar" : isEn ? "en" : "fr"] ?? role;
 
   return (
     <aside
@@ -110,12 +112,12 @@ export function Sidebar({ collapsed, onClose, profile }: SidebarProps) {
                   : "text-slate-400 hover:bg-slate-800 hover:text-white",
                 collapsed && "justify-center px-2"
               )}
-              title={collapsed ? (isAr ? item.labelAr : item.labelFr) : undefined}
+              title={collapsed ? (isAr ? item.labelAr : isEn ? item.labelEn : item.labelFr) : undefined}
             >
               <item.icon className="h-4 w-4 shrink-0" />
               {!collapsed && (
                 <>
-                  <span className="flex-1">{isAr ? item.labelAr : item.labelFr}</span>
+                  <span className="flex-1">{isAr ? item.labelAr : isEn ? item.labelEn : item.labelFr}</span>
                   {isActive && <ChevronRight className="h-3 w-3 opacity-60" />}
                 </>
               )}
@@ -129,7 +131,7 @@ export function Sidebar({ collapsed, onClose, profile }: SidebarProps) {
         <div className="p-3 border-t border-slate-800">
           <div className="rounded-xl bg-slate-800 px-3 py-2.5">
             <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">
-              {isAr ? "الدور" : "Rôle"}
+              {isAr ? "الدور" : isEn ? "Role" : "Rôle"}
             </p>
             <p className="text-xs text-slate-300 font-medium">{roleLabel}</p>
           </div>

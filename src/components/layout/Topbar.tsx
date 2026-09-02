@@ -15,11 +15,11 @@ import { createClient } from "@/lib/supabase/client";
 import { NotificationsPanel } from "@/components/layout/NotificationsPanel";
 import type { AppProfile } from "@/components/layout/AppShell";
 
-const ROLE_LABELS: Record<string, { fr: string; ar: string }> = {
-  super:   { fr: "Super Admin",  ar: "مشرف المنصة" },
-  admin:   { fr: "Directeur",    ar: "مدير" },
-  teacher: { fr: "Enseignant",   ar: "أستاذ" },
-  parent:  { fr: "Parent",       ar: "ولي أمر" },
+const ROLE_LABELS: Record<string, { fr: string; ar: string; en: string }> = {
+  super:   { fr: "Super Admin",  ar: "مشرف المنصة", en: "Super Admin" },
+  admin:   { fr: "Directeur",    ar: "مدير", en: "Principal" },
+  teacher: { fr: "Enseignant",   ar: "أستاذ", en: "Teacher" },
+  parent:  { fr: "Parent",       ar: "ولي أمر", en: "Parent" },
 };
 
 interface TopbarProps {
@@ -32,6 +32,8 @@ export function Topbar({ onToggleSidebar, profile }: TopbarProps) {
   const pathname = usePathname();
   const router   = useRouter();
   const isAr     = locale === "ar";
+  const isEn     = locale === "en";
+  const nextLocale = locale === "fr" ? "ar" : locale === "ar" ? "en" : "fr";
 
   const [email, setEmail] = useState<string>("");
 
@@ -42,11 +44,10 @@ export function Topbar({ onToggleSidebar, profile }: TopbarProps) {
 
   const fullName  = `${profile.first_name} ${profile.last_name}`.trim();
   const initials  = getInitials(profile.first_name, profile.last_name);
-  const roleLabel = ROLE_LABELS[profile.role]?.[isAr ? "ar" : "fr"] ?? profile.role;
+  const roleLabel = ROLE_LABELS[profile.role]?.[isAr ? "ar" : isEn ? "en" : "fr"] ?? profile.role;
 
   const switchLocale = () => {
-    const next    = locale === "fr" ? "ar" : "fr";
-    const newPath = pathname.replace(/^\/(fr|ar)/, `/${next}`);
+    const newPath = pathname.replace(/^\/(fr|ar|en)/, `/${nextLocale}`);
     router.push(newPath);
   };
 
@@ -73,7 +74,7 @@ export function Topbar({ onToggleSidebar, profile }: TopbarProps) {
         <Button variant="ghost" size="sm" onClick={switchLocale}
           className="text-slate-500 hover:text-slate-700 gap-1.5 text-xs font-medium h-8">
           <Globe className="h-3.5 w-3.5" />
-          {isAr ? "FR" : "AR"}
+          {nextLocale.toUpperCase()}
         </Button>
 
         <NotificationsPanel isAr={isAr} />
@@ -99,7 +100,7 @@ export function Topbar({ onToggleSidebar, profile }: TopbarProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => router.push(`/${locale}/profile`)}>
               <User className="h-4 w-4" />
-              {isAr ? "ملفي الشخصي" : "Mon profil"}
+              {isAr ? "ملفي الشخصي" : isEn ? "My profile" : "Mon profil"}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -107,7 +108,7 @@ export function Topbar({ onToggleSidebar, profile }: TopbarProps) {
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4" />
-              {isAr ? "تسجيل الخروج" : "Déconnexion"}
+              {isAr ? "تسجيل الخروج" : isEn ? "Log out" : "Déconnexion"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

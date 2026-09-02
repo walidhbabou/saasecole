@@ -23,8 +23,8 @@ const ROLE_PREFIX: Record<string, string> = {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const pathnameWithoutLocale = pathname.replace(/^\/(fr|ar)/, "") || "/";
-  const locale = pathname.match(/^\/(fr|ar)/)?.[1] ?? "fr";
+  const pathnameWithoutLocale = pathname.replace(/^\/(fr|ar|en)/, "") || "/";
+  const locale = pathname.match(/^\/(fr|ar|en)/)?.[1] ?? "fr";
 
   const isPublicPath = PUBLIC_PATHS.some(
     (p) => pathnameWithoutLocale === p || pathnameWithoutLocale.startsWith(p + "/")

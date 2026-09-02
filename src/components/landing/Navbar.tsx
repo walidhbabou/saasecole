@@ -11,9 +11,14 @@ export function LandingNavbar() {
   const [open, setOpen] = useState(false);
   const isAr = locale === "ar";
 
+  const isEn = locale === "en";
   const navLinks = isAr
     ? [{ label: "المميزات", href: "#features" }, { label: "الأسعار", href: "#pricing" }, { label: "تسجيل الدخول", href: `/${locale}/login` }]
-    : [{ label: "Fonctionnalités", href: "#features" }, { label: "Tarifs", href: "#pricing" }, { label: "Connexion", href: `/${locale}/login` }];
+    : isEn
+      ? [{ label: "Features", href: "#features" }, { label: "Pricing", href: "#pricing" }, { label: "Log in", href: `/${locale}/login` }]
+      : [{ label: "Fonctionnalités", href: "#features" }, { label: "Tarifs", href: "#pricing" }, { label: "Connexion", href: `/${locale}/login` }];
+
+  const nextLocale = locale === "fr" ? "ar" : locale === "ar" ? "en" : "fr";
 
   return (
     <nav className="fixed top-0 inset-x-0 z-50 border-b border-white/10 bg-slate-900/90 backdrop-blur-md">
@@ -41,19 +46,19 @@ export function LandingNavbar() {
           {/* Right actions */}
           <div className="hidden md:flex items-center gap-3">
             <button
-              onClick={() => router.push(`/${locale === "fr" ? "ar" : "fr"}` + window.location.pathname.replace(/^\/(fr|ar)/, ""))}
+              onClick={() => router.push(`/${nextLocale}` + window.location.pathname.replace(/^\/(fr|ar|en)/, ""))}
               className="text-xs text-slate-400 hover:text-white font-medium px-2 py-1 rounded border border-slate-700 hover:border-slate-500 transition-colors"
             >
-              {isAr ? "FR" : "عربية"}
+              {nextLocale.toUpperCase()}
             </button>
             <a href={`/${locale}/login`}>
               <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white hover:bg-white/10">
-                {isAr ? "دخول" : "Connexion"}
+                {isAr ? "دخول" : isEn ? "Log in" : "Connexion"}
               </Button>
             </a>
             <a href={`/${locale}/login`}>
               <Button size="sm" className="bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/30">
-                {isAr ? "جرّب مجاناً" : "Démarrer gratuitement"}
+                {isAr ? "جرّب مجاناً" : isEn ? "Start for free" : "Démarrer gratuitement"}
               </Button>
             </a>
           </div>
@@ -74,7 +79,7 @@ export function LandingNavbar() {
             ))}
             <a href={`/${locale}/login`} className="block">
               <Button className="w-full mt-2 bg-emerald-500 hover:bg-emerald-400">
-                {isAr ? "جرّب مجاناً" : "Démarrer gratuitement"}
+                {isAr ? "جرّب مجاناً" : isEn ? "Start for free" : "Démarrer gratuitement"}
               </Button>
             </a>
           </div>

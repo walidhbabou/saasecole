@@ -891,3 +891,25 @@ export async function toggleSchoolStatus(schoolId: string, currentStatus: string
   revalidatePath("/ar/super/schools");
   return { success: true, newStatus };
 }
+
+export async function removeSchool(schoolId: string) {
+  const sb = await createClient();
+  const profile = await getProfile();
+  if (profile?.role !== "super") return { error: ACTION_MESSAGES.accessDenied };
+
+  const { error } = await sb.from("schools").delete().eq("id", schoolId);
+  if (error) return { error: asErrorMessage(error, "Erreur lors de la suppression de l'école") };
+
+  await logAuditEvent({
+    action: "delete",
+    entity_type: "school",
+    entity_id: schoolId,
+    school_id: schoolId,
+    actor_id: profile.id,
+    actor_role: profile.role,
+  });
+  revalidatePath("/fr/super/schools");
+  revalidatePath("/ar/super/schools");
+  revalidatePath("/en/super/schools");
+  return { success: true };
+}

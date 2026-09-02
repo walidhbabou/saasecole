@@ -1,6 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
-import { Search, PlusCircle, MoreHorizontal, CheckCircle, XCircle, Loader2, X } from "lucide-react";
+import { Search, PlusCircle, MoreHorizontal, Trash2, Loader2, X } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { formatCurrency } from "@/lib/utils";
-import { toggleSchoolStatus, createSchoolWithAdmin } from "@/lib/actions";
+import { removeSchool, createSchoolWithAdmin } from "@/lib/actions";
 import { PLAN_MRR } from "@/lib/constants";
 
 interface Props { schools: any[]; locale: string; }
@@ -35,11 +35,12 @@ export function SuperSchoolsClient({ schools: initialSchools, locale }: Props) {
     s.name.toLowerCase().includes(q.toLowerCase()) || (s.city ?? "").toLowerCase().includes(q.toLowerCase())
   );
 
-  function handleToggle(id: string, currentStatus: string) {
+  function handleRemove(id: string, name: string) {
+    if (!window.confirm(isAr ? `حذف ${name}؟` : `Remove ${name}?`)) return;
     startTransition(async () => {
-      const res = await toggleSchoolStatus(id, currentStatus);
+      const res = await removeSchool(id);
       if (!res.error) {
-        setSchools(prev => prev.map(s => s.id === id ? { ...s, subscription_status: res.newStatus } : s));
+        setSchools(prev => prev.filter(s => s.id !== id));
       }
     });
   }
@@ -135,7 +136,7 @@ export function SuperSchoolsClient({ schools: initialSchools, locale }: Props) {
                   <TableCell>
                     {isActive
                       ? <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block" />{isAr ? "نشط" : "Actif"}</span>
-                      : <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-400"><span className="h-1.5 w-1.5 rounded-full bg-slate-300 inline-block" />{isAr ? "معطل" : "Suspendu"}</span>}
+                      : <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-400"><span className="h-1.5 w-1.5 rounded-full bg-slate-300 inline-block" />{isAr ? "معطل" : "Inactif"}</span>}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -146,13 +147,8 @@ export function SuperSchoolsClient({ schools: initialSchools, locale }: Props) {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => handleToggle(s.id, s.subscription_status)}
-                          className={isActive ? "text-amber-600" : "text-emerald-600"}
-                        >
-                          {isActive
-                            ? <><XCircle className="h-4 w-4" />{isAr ? "تعليق" : "Suspendre"}</>
-                            : <><CheckCircle className="h-4 w-4" />{isAr ? "تفعيل" : "Activer"}</>}
+                        <DropdownMenuItem onClick={() => handleRemove(s.id, s.name)} className="text-red-600 focus:text-red-600">
+                          <Trash2 className="h-4 w-4" />{isAr ? "حذف" : "Remove"}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

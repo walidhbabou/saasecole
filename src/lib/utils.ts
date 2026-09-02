@@ -1,7 +1,7 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { format } from "date-fns";
-import { fr, ar } from "date-fns/locale";
+import { enUS, fr, ar } from "date-fns/locale";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -9,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatDate(date: string | Date, locale: string = "fr") {
   const d = typeof date === "string" ? new Date(date) : date;
-  return format(d, "dd/MM/yyyy", { locale: locale === "ar" ? ar : fr });
+  return format(d, "dd/MM/yyyy", { locale: locale === "ar" ? ar : locale === "en" ? enUS : fr });
 }
 
 export function formatCurrency(amount: number, currency: string = "MAD") {

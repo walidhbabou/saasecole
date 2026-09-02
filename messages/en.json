@@ -1,0 +1,68 @@
+{
+  "app": { "name": "Madrasati", "tagline": "Smart school management" },
+  "nav": {
+    "dashboard": "Dashboard", "students": "Students", "teachers": "Teachers", "classes": "Classes",
+    "enrollments": "Enrollments", "attendance": "Attendance", "fees": "School fees", "settings": "Settings",
+    "schools": "Schools", "billing": "Billing", "logout": "Log out", "profile": "My profile"
+  },
+  "common": {
+    "search": "Search...", "add": "Add", "edit": "Edit", "delete": "Delete", "save": "Save", "cancel": "Cancel",
+    "confirm": "Confirm", "loading": "Loading...", "noData": "No data", "actions": "Actions", "status": "Status",
+    "name": "Name", "email": "Email", "phone": "Phone", "date": "Date", "total": "Total", "active": "Active",
+    "inactive": "Inactive", "male": "Male", "female": "Female", "close": "Close", "back": "Back", "next": "Next",
+    "previous": "Previous", "of": "of", "rows": "rows", "showing": "Showing", "perPage": "per page", "viewAll": "View all",
+    "filter": "Filter", "export": "Export", "import": "Import", "yes": "Yes", "no": "No"
+  },
+  "auth": {
+    "login": "Login", "logout": "Log out", "email": "Email address", "password": "Password", "forgotPassword": "Forgot password?",
+    "signIn": "Sign in", "welcome": "Welcome to Madrasati", "loginDesc": "Sign in to your school workspace",
+    "invalidCredentials": "Incorrect email or password", "rememberMe": "Remember me"
+  },
+  "dashboard": {
+    "welcome": "Welcome,", "overview": "Overview", "totalStudents": "Total students", "totalTeachers": "Total teachers",
+    "totalClasses": "Total classes", "totalRevenue": "Monthly revenue", "attendanceRate": "Attendance rate",
+    "recentActivity": "Recent activity", "upcomingEvents": "Upcoming events", "pendingFees": "Outstanding fees",
+    "todayAttendance": "Today's attendance", "myClasses": "My classes", "myStudents": "My students", "myChildren": "My children",
+    "nextPayment": "Next payment", "totalSchools": "Total schools", "activeSchools": "Active schools", "monthlyRevenue": "Monthly revenue",
+    "platformStats": "Platform statistics"
+  },
+  "students": {
+    "title": "Student management", "addStudent": "Add student", "editStudent": "Edit student", "deleteStudent": "Delete student",
+    "studentDetails": "Student details", "firstName": "First name", "lastName": "Last name", "matricule": "Student ID",
+    "birthDate": "Date of birth", "gender": "Gender", "address": "Address", "parentName": "Parent name", "class": "Class",
+    "searchPlaceholder": "Search for a student...", "confirmDelete": "Are you sure you want to delete this student?",
+    "noStudents": "No students found", "totalStudents": "enrolled students", "newThisMonth": "new this month"
+  },
+  "classes": {
+    "title": "Class management", "addClass": "Add class", "editClass": "Edit class", "className": "Class name", "level": "Level",
+    "teacher": "Lead teacher", "capacity": "Capacity", "studentsCount": "Number of students", "academicYear": "School year",
+    "searchPlaceholder": "Search for a class...", "noClasses": "No classes found", "viewStudents": "View students"
+  },
+  "enrollments": {
+    "title": "Enrollments", "addEnrollment": "New enrollment", "student": "Student", "class": "Class", "enrolledAt": "Enrollment date",
+    "status": "Status", "statusActive": "Active", "statusTransferred": "Transferred", "statusWithdrawn": "Withdrawn",
+    "academicYear": "School year", "searchPlaceholder": "Search for an enrollment..."
+  },
+  "attendance": {
+    "title": "Attendance tracking", "markAttendance": "Mark attendance", "present": "Present", "absent": "Absent", "late": "Late",
+    "excused": "Excused", "date": "Date", "class": "Class", "period": "Period", "morning": "Morning", "afternoon": "Afternoon",
+    "saveAttendance": "Save", "attendanceRate": "Attendance rate", "history": "History", "noRecord": "No records", "searchPlaceholder": "Search..."
+  },
+  "fees": {
+    "title": "School fees", "addFee": "Add fee", "feeType": "Fee type", "amount": "Amount", "dueDate": "Due date", "paidAt": "Payment date",
+    "status": "Status", "statusPending": "Pending", "statusPaid": "Paid", "statusOverdue": "Overdue", "statusCancelled": "Cancelled",
+    "markAsPaid": "Mark as paid", "totalDue": "Total due", "totalPaid": "Total paid", "overdue": "Overdue", "searchPlaceholder": "Search...",
+    "noFees": "No fees found", "currency": "MAD"
+  },
+  "settings": {
+    "title": "Settings", "schoolInfo": "School information", "schoolName": "School name", "academicYear": "School year", "address": "Address",
+    "phone": "Phone", "email": "Email", "logo": "Logo", "save": "Save changes", "language": "Language", "notifications": "Notifications",
+    "security": "Security", "subscription": "Subscription"
+  },
+  "super": {
+    "schools": "School management", "addSchool": "Add school", "plan": "Plan", "planFree": "Free", "planBasic": "Basic", "planPro": "Pro",
+    "planEnterprise": "Enterprise", "subscriptionStatus": "Subscription status", "billing": "Platform billing", "revenue": "Revenue",
+    "invoices": "Invoices", "searchSchool": "Search for a school..."
+  },
+  "roles": { "admin": "Administrator", "teacher": "Teacher", "parent": "Parent", "super": "Super Admin" }
+}

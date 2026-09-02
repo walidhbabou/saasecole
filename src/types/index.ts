@@ -1,4 +1,4 @@
-export type Locale = "fr" | "ar";
+export type Locale = "fr" | "ar" | "en";
 export type Role = "super" | "admin" | "teacher" | "parent";
 export type Gender = "M" | "F";
 export type AttendanceStatus = "present" | "absent" | "late" | "excused";
